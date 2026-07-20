@@ -44,10 +44,6 @@ def get_typed_annotation(param: inspect.Parameter, globalns: DictStrAny) -> Any:
 
 
 def make_forwardref(annotation: str, globalns: DictStrAny) -> Any:
-    # NOTE: in future versions of pydantic, the import may be changed to:
-    # from pydantic._internal._typing_extra import try_eval_type
-    # usage:
-    # result, _ = try_eval_type(forward_ref, globalns, globalns)
     forward_ref = ForwardRef(annotation)
     return evaluate_forwardref(forward_ref, globalns, globalns)
 
@@ -58,7 +54,6 @@ def get_path_param_names(path: str) -> Set[str]:
 
 
 def is_async(callable: Callable[..., Any]) -> bool:
-    # TODO: Drop this condition once support for <= 3.11 is dropped
     if version_info >= (3, 12):
         return inspect.iscoroutinefunction(callable)
     else:
@@ -78,10 +73,9 @@ def get_args_names(func: Callable[..., Any]) -> List[str]:
 
 
 class UUIDStrConverter(UUIDConverter):
-    """Return a path converted UUID as a str instead of the standard UUID"""
 
     def to_python(self, value: str) -> str:  # type: ignore
-        return value  # return string value instead of UUID
+        pass
 
 
 register_converter(UUIDStrConverter, "uuidstr")

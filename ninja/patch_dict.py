@@ -30,38 +30,15 @@ class ModelToDict(dict):
 
     @classmethod
     def _validate(cls, input_value: Any) -> Any:
-        return input_value.model_dump(**cls._wrapped_model_dump_params)
+        pass
 
 
 def get_schema_annotations(schema_cls: Type[Any]) -> Dict[str, Any]:
-    annotations: Dict[str, Any] = {}
-    excluded_bases = {Schema, ModelSchema, BaseModel}
-    bases = schema_cls.mro()[:-1]
-    final_bases = reversed([b for b in bases if b not in excluded_bases])
-
-    for base in final_bases:
-        annotations.update(getattr(base, "__annotations__", {}))
-
-    return annotations
+    pass
 
 
 def create_patch_schema(schema_cls: Type[Any]) -> Type[ModelToDict]:
-    schema_annotations = get_schema_annotations(schema_cls)
-    values, annotations = {}, {}
-    # assert False, f"{schema_cls} - {schema_cls.model_fields}"
-    for f in schema_cls.model_fields.keys():
-        t = schema_annotations[f]
-        if not is_optional_type(t):
-            values[f] = getattr(schema_cls, f, None)
-            annotations[f] = Optional[t]
-    values["__annotations__"] = annotations
-    OptionalSchema = type(f"{schema_cls.__name__}Patch", (schema_cls,), values)
-
-    class OptionalDictSchema(ModelToDict):
-        _wrapped_model = OptionalSchema
-        _wrapped_model_dump_params = {"exclude_unset": True}
-
-    return OptionalDictSchema
+    pass
 
 
 class PatchDictUtil:

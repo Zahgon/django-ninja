@@ -34,10 +34,6 @@ TModel = TypeVar("TModel", bound="ParamModel")
 
 
 class ValidationErrorContext(Generic[TModel]):
-    """
-    The full context of a `pydantic.ValidationError`, including all information
-    needed to produce a `ninja.errors.ValidationError`.
-    """
 
     def __init__(
         self, pydantic_validation_error: pydantic.ValidationError, model: TModel
@@ -47,11 +43,6 @@ class ValidationErrorContext(Generic[TModel]):
 
 
 class ValidationError(Exception):
-    """
-    This exception raised when operation params do not validate
-    Note: this is not the same as pydantic.ValidationError
-    the errors attribute as well holds the location of the error(body, form, query, etc.)
-    """
 
     def __init__(self, errors: List[DictStrAny]) -> None:
         self.errors = errors
@@ -104,30 +95,22 @@ def set_default_exc_handlers(api: "NinjaAPI") -> None:
 
 
 def _default_404(request: HttpRequest, exc: Exception, api: "NinjaAPI") -> HttpResponse:
-    msg = "Not Found"
-    if settings.DEBUG:
-        msg += f": {exc}"
-    return api.create_response(request, {"detail": msg}, status=404)
+    pass
 
 
 def _default_http_error(
     request: HttpRequest, exc: HttpError, api: "NinjaAPI"
 ) -> HttpResponse:
-    return api.create_response(request, {"detail": str(exc)}, status=exc.status_code)
+    pass
 
 
 def _default_validation_error(
     request: HttpRequest, exc: ValidationError, api: "NinjaAPI"
 ) -> HttpResponse:
-    return api.create_response(request, {"detail": exc.errors}, status=422)
+    pass
 
 
 def _default_exception(
     request: HttpRequest, exc: Exception, api: "NinjaAPI"
 ) -> HttpResponse:
-    if not settings.DEBUG:
-        raise exc  # let django deal with it
-
-    logger.exception(exc)
-    tb = traceback.format_exc()
-    return HttpResponse(tb, status=500, content_type="text/plain")
+    pass

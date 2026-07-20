@@ -10,7 +10,6 @@ __all__ = ["Parser"]
 
 
 class Parser:
-    "Default json parser"
 
     def parse_body(self, request: HttpRequest) -> DictStrAny:
         return cast(DictStrAny, json.loads(request.body))

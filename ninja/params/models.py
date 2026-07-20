@@ -209,13 +209,9 @@ class Param(FieldInfo):  # type: ignore[misc]
         deprecated: Optional[bool] = None,
         include_in_schema: Optional[bool] = True,
         pattern: Union[str, Pattern[str], None] = None,
-        # param_name: str = None,
-        # param_type: Any = None,
         **extra: Any,
     ):
         self.deprecated = deprecated
-        # self.param_name: str = None
-        # self.param_type: Any = None
         self.model_field: Optional[FieldInfo] = None
         json_schema_extra = {}
         if example:
@@ -249,8 +245,7 @@ class Param(FieldInfo):  # type: ignore[misc]
 
     @classmethod
     def _param_source(cls) -> str:
-        "Openapi param.in value or body type"
-        return cls.__name__.lower()
+        pass
 
 
 class Path(Param):  # type: ignore[misc]
@@ -286,4 +281,4 @@ class _MultiPartBody(Param):  # type: ignore[misc]
 
     @classmethod
     def _param_source(cls) -> str:
-        return "body"
+        pass

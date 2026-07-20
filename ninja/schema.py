@@ -1,22 +1,3 @@
-"""
-Since "Model" word would be very confusing when used in django context, this
-module basically makes an alias for it named "Schema" and adds extra whistles to
-be able to work with django querysets and managers.
-
-The schema is a bit smarter than a standard pydantic Model because it can handle
-dotted attributes and resolver methods. For example::
-
-
-    class UserSchema(User):
-        name: str
-        initials: str
-        boss: str = Field(None, alias="boss.first_name")
-
-        @staticmethod
-        def resolve_name(obj):
-            return f"{obj.first_name} {obj.last_name}"
-
-"""
 
 import warnings
 from typing import (
@@ -59,8 +40,6 @@ class DjangoGetter:
         self._context = context
 
     def __getattr__(self, key: str) -> Any:
-        # if key.startswith("__pydantic"):
-        #     return getattr(self._obj, key)
 
         resolver = self._schema_cls._ninja_resolvers.get(key)
         if resolver:
@@ -75,36 +54,14 @@ class DjangoGetter:
                     value = getattr(self._obj, key)
                 except AttributeError:
                     try:
-                        # value = attrgetter(key)(self._obj)
                         value = Variable(key).resolve(self._obj)
-                        # TODO: Variable(key) __init__ is actually slower than
-                        #       Variable.resolve - so it better be cached
                     except VariableDoesNotExist as e:
                         raise AttributeError(key) from e
         return self._convert_result(value)
 
-    # def get(self, key: Any, default: Any = None) -> Any:
-    #     try:
-    #         return self[key]
-    #     except KeyError:
-    #         return default
 
     def _convert_result(self, result: Any) -> Any:
-        if isinstance(result, Manager):
-            return list(result.all())
-
-        elif isinstance(result, getattr(QuerySet, "__origin__", QuerySet)):
-            return list(result)
-
-        if callable(result):
-            return result()
-
-        elif isinstance(result, FieldFile):
-            if not result:
-                return None
-            return result.url
-
-        return result
+        pass
 
     def __repr__(self) -> str:
         return f"<DjangoGetter: {repr(self._obj)}>"
@@ -137,22 +94,9 @@ class Resolver:
         raise NotImplementedError(
             "Non static resolves are not supported yet"
         )  # pragma: no cover
-        # return self._func(self._fake_instance(getter), getter._obj)
 
-    # def _fake_instance(self, getter: DjangoGetter) -> "Schema":
-    #     """
-    #     Generate a partial schema instance that can be used as the ``self``
-    #     attribute of resolver functions.
-    #     """
 
-    #     class PartialSchema(Schema):
-    #         def __getattr__(self, key: str) -> Any:
-    #             value = getattr(getter, key)
-    #             field = getter._schema_cls.model_fields[key]
-    #             value = field.validate(value, values={}, loc=key, cls=None)[0]
-    #             return value
 
-    #     return PartialSchema()
 
 
 @dataclass_transform(kw_only_default=True, field_specifiers=(Field,))
@@ -172,7 +116,6 @@ class ResolverMetaclass(ModelMetaclass):
                 continue
             if (
                 not callable(resolve_func)
-                # A staticmethod isn't directly callable in Python <=3.9.
                 and not isinstance(resolve_func, staticmethod)
             ):
                 continue  # pragma: no cover
@@ -185,25 +128,7 @@ class ResolverMetaclass(ModelMetaclass):
 
 class NinjaGenerateJsonSchema(GenerateJsonSchema):
     def default_schema(self, schema: Any) -> JsonSchemaValue:
-        # Pydantic default actually renders null's and default_factory's
-        # which really breaks swagger and django model callable defaults
-        # so here we completely override behavior
-        json_schema = self.generate_inner(schema["schema"])
-
-        default = None
-        if "default" in schema and schema["default"] is not None:
-            default = self.encode_default(schema["default"])
-
-        if "$ref" in json_schema:
-            # Since reference schemas do not support child keys, we wrap the reference schema in a single-case allOf:
-            result = {"allOf": [json_schema]}
-        else:
-            result = json_schema
-
-        if default is not None:
-            result["default"] = default
-
-        return result
+        pass
 
 
 class Schema(BaseModel, metaclass=ResolverMetaclass):
@@ -214,35 +139,19 @@ class Schema(BaseModel, metaclass=ResolverMetaclass):
     def _run_root_validator(
         cls, values: Any, handler: ModelWrapValidatorHandler[S], info: ValidationInfo
     ) -> Any:
-        # If Pydantic intends to validate against the __dict__ of the immediate Schema
-        # object, then we need to call `handler` directly on `values` before the conversion
-        # to DjangoGetter, since any checks or modifications on DjangoGetter's __dict__
-        # will not persist to the original object.
-        forbids_extra = cls.model_config.get("extra") == "forbid"
-        should_validate_assignment = cls.model_config.get("validate_assignment", False)
-        if forbids_extra or should_validate_assignment:
-            handler(values)
-
-        values = DjangoGetter(values, cls, info.context)
-        return handler(values)
+        pass
 
     @classmethod
     def from_orm(cls: Type[S], obj: Any, **kw: Any) -> S:
-        return cls.model_validate(obj, **kw)
+        pass
 
     def dict(self, *a: Any, **kw: Any) -> DictStrAny:
-        "Backward compatibility with pydantic 1.x"
-        return self.model_dump(*a, **kw)
+        pass
 
     @classmethod
     def json_schema(cls) -> DictStrAny:
-        return cls.model_json_schema(schema_generator=NinjaGenerateJsonSchema)
+        pass
 
     @classmethod
     def schema(cls) -> DictStrAny:  # type: ignore
-        warnings.warn(
-            ".schema() is deprecated, use .json_schema() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return cls.json_schema()
+        pass

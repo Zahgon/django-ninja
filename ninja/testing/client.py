@@ -22,8 +22,6 @@ def build_absolute_uri(location: Optional[str] = None) -> str:
     return base
 
 
-# TODO: this should be changed
-# maybe add here urlconf object and add urls from here
 class NinjaClientBase:
     __test__ = False  # <- skip pytest
 
@@ -105,17 +103,7 @@ class NinjaClientBase:
 
     @property
     def urls(self) -> List:
-        if not hasattr(self, "_urls_cache"):
-            self._urls_cache: List
-            if isinstance(self.router_or_app, NinjaAPI):
-                self._urls_cache = self.router_or_app.urls[0]
-            else:
-                # Create temporary API without mutating router
-                # Unique namespace prevents registry conflicts
-                api = NinjaAPI(urls_namespace=f"test-{id(self)}")
-                api.add_router("", self.router_or_app)
-                self._urls_cache = api.urls[0]
-        return self._urls_cache
+        pass
 
     def _resolve(
         self, method: str, path: str, data: Dict, request_params: Any
@@ -202,13 +190,11 @@ class TestAsyncClient(NinjaClientBase):
         if http_response.streaming and inspect.isasyncgen(
             http_response.streaming_content
         ):
-            # Async streaming: consume async iterator into bytes
             chunks = []
             async for chunk in http_response.streaming_content:
                 chunks.append(
                     chunk.encode("utf-8") if isinstance(chunk, str) else chunk
                 )
-            # Replace with sync content for NinjaResponse
             http_response.streaming_content = iter(chunks)
         return NinjaResponse(http_response)
 
@@ -229,13 +215,11 @@ class NinjaResponse:
         self._data = None
 
     def json(self) -> Any:
-        return json_loads(self.content)
+        pass
 
     @property
     def data(self) -> Any:
-        if self._data is None:  # Recomputes if json() is None but cheap then
-            self._data = self.json()
-        return self._data
+        pass
 
     def __getitem__(self, key: str) -> Any:
         return self._response[key]

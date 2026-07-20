@@ -11,7 +11,6 @@ def _serialize_item(item: Any) -> str:
 
 
 class _StreamAlias:
-    """Marker created by StreamFormat[ItemType]."""
 
     def __init__(self, format_cls: type, item_type: type) -> None:
         self.format_cls = format_cls
@@ -19,7 +18,6 @@ class _StreamAlias:
 
 
 class StreamFormat:
-    """Base class for streaming formats. Extensible by users."""
 
     media_type: str
 
@@ -38,8 +36,7 @@ class StreamFormat:
 
     @classmethod
     def response_headers(cls) -> Dict[str, str]:
-        """Extra headers for the streaming response."""
-        return {}
+        pass
 
 
 class JSONL(StreamFormat):
@@ -47,7 +44,7 @@ class JSONL(StreamFormat):
 
     @classmethod
     def format_chunk(cls, data: str) -> str:
-        return data + "\n"
+        pass
 
 
 class SSE(StreamFormat):
@@ -55,11 +52,11 @@ class SSE(StreamFormat):
 
     @classmethod
     def format_chunk(cls, data: str) -> str:
-        return f"data: {data}\n\n"
+        pass
 
     @classmethod
     def response_headers(cls) -> Dict[str, str]:
-        return {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+        pass
 
     @classmethod
     def openapi_content_schema(cls, item_schema: dict) -> dict:

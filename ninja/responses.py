@@ -23,12 +23,6 @@ T = TypeVar("T")
 
 
 class Status(Generic[T]):
-    """Return a response with an explicit HTTP status code.
-
-    Usage:
-        return Status(200, {"key": "value"})
-        return Status(204, None)
-    """
 
     __slots__ = ("status_code", "value")
 
@@ -39,15 +33,7 @@ class Status(Generic[T]):
 
 class NinjaJSONEncoder(DjangoJSONEncoder):
     def default(self, o: Any) -> Any:
-        if isinstance(o, BaseModel):
-            return o.model_dump()
-        if isinstance(o, (Url, AnyUrl)):
-            return str(o)
-        if isinstance(o, (IPv4Address, IPv4Network, IPv6Address, IPv6Network)):
-            return str(o)
-        if isinstance(o, Enum):
-            return str(o)
-        return super().default(o)
+        pass
 
 
 class Response(JsonResponse):
@@ -59,7 +45,6 @@ def resp_codes(from_code: int, to_code: int) -> FrozenSet[int]:
     return frozenset(range(from_code, to_code + 1))
 
 
-# most common http status codes
 codes_1xx = resp_codes(100, 101)
 codes_2xx = resp_codes(200, 206)
 codes_3xx = resp_codes(300, 308)

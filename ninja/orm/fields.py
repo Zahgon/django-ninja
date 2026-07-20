@@ -16,9 +16,6 @@ from ninja.types import DictStrAny
 __all__ = ["create_m2m_link_type", "get_schema_field", "get_related_field_schema"]
 
 
-# keep_lazy seems not needed as .title forces translation anyway
-# https://github.com/vitalik/django-ninja/issues/774
-# @keep_lazy_text
 def title_if_lower(s: str) -> str:
     if s == s.lower():
         return s.title()
@@ -40,7 +37,7 @@ class AnyObject:
 
     @classmethod
     def validate(cls, value: Any, _: Any) -> Any:
-        return value
+        pass
 
 
 TYPES = {
@@ -71,7 +68,6 @@ TYPES = {
     "TextField": str,
     "TimeField": datetime.time,
     "UUIDField": UUID,
-    # postgres fields:
     "ArrayField": List,
     "CICharField": str,
     "CIEmailField": str,
@@ -105,10 +101,7 @@ def create_m2m_link_type(type_: Type[TModel]) -> Type[TModel]:
 
         @classmethod
         def _validate(cls, v: Any, _):
-            try:
-                return v.pk  # when we output queryset - we have db instances
-            except AttributeError:
-                return type_(v)  # when we read payloads we have primakey keys
+            pass
 
     return M2MLink
 

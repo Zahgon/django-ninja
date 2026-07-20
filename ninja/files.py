@@ -11,16 +11,13 @@ class UploadedFile(DjangoUploadedFile):
     def __get_pydantic_json_schema__(
         cls, core_schema: Any, handler: Callable[..., Any]
     ) -> Dict:
-        # calling handler(core_schema) here raises an exception
         json_schema: Dict[str, str] = {}
         json_schema.update(type="string", format="binary")
         return json_schema
 
     @classmethod
     def _validate(cls, v: Any, _: Any) -> Any:
-        if not isinstance(v, DjangoUploadedFile):
-            raise ValueError(f"Expected UploadFile, received: {type(v)}")
-        return v
+        pass
 
     @classmethod
     def __get_pydantic_core_schema__(

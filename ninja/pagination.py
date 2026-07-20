@@ -67,7 +67,6 @@ class PaginationBase(ABC):
         We will first to try to use .count - and if not there will use a len
         """
         try:
-            # forcing to find queryset.count instead of list.count:
             return queryset.all().count()
         except AttributeError:
             return len(queryset)
@@ -208,8 +207,6 @@ class CursorPagination(AsyncPaginationBase):
         **kwargs: Any,
     ) -> None:
         self.ordering = ordering
-        # take the first ordering parameter as the attribute for establishing
-        # position
         self._order_attribute = (
             ordering[0][1:] if ordering[0].startswith("-") else ordering[0]
         )
@@ -230,12 +227,6 @@ class CursorPagination(AsyncPaginationBase):
         results: List[Any]
 
     class Cursor(BaseModel):
-        """
-        Represents pagination state.
-
-        This is encoded in a base64 query parameter.
-
-        """
 
         p: Optional[str] = Field(
             default=None,
@@ -249,9 +240,6 @@ class CursorPagination(AsyncPaginationBase):
             description="Whether to reverse the ordering direction",
         )
 
-        # offset enables the use of a non-unique ordering field
-        # e.g. if created time of two items is exactly the same, we can use the offset
-        # to figure out the position exactly
         o: int = Field(
             default=0,
             ge=0,
@@ -263,15 +251,7 @@ class CursorPagination(AsyncPaginationBase):
         @field_validator("*", mode="before")
         @classmethod
         def validate_individual_queryparam(cls, value: Any) -> Any:
-            """
-            Handle query string parsing quirks where single values become lists.
-
-            URL parsing libraries wrap single query parameters in lists, we only
-            care about a single value
-            """
-            if isinstance(value, list):
-                return value[0]
-            return value
+            pass
 
         @classmethod
         def from_encoded_param(
@@ -348,12 +328,8 @@ class CursorPagination(AsyncPaginationBase):
             return None
 
         if not current_cursor.r:
-            # next position is provided by the additional position in a forward cursor
             next_position = additional_position
         else:
-            # default to the last item
-            # this will result in this item being included in the next set of results
-            # when flipping from a reversed cursor query to a forward cursor query
             next_position = self._get_position(results[-1])
 
         offset = 0
@@ -361,7 +337,6 @@ class CursorPagination(AsyncPaginationBase):
         if current_cursor.p == next_position and not current_cursor.r:
             offset += current_cursor.o + len(results)
         else:
-            # Count duplicates at page end to find the offset
             for item in reversed(results):
                 item_position_value = self._get_position(item)
                 if item_position_value != next_position:
@@ -385,19 +360,12 @@ class CursorPagination(AsyncPaginationBase):
             return None
 
         if not results:
-            # End of dataset - create reverse cursor to go backward
             return self.Cursor(o=0, r=True, p=current_cursor.p)
 
         if current_cursor.r:
-            # previous position is provided by the additional position in a
-            # reversed cursor
             previous_position = additional_position
 
         else:
-            # default to the first item
-            # this will result in this item being included in the previous set of
-            # results when flipping from a forward cursor query to a reversed
-            # cursor query
             previous_position = self._get_position(results[0])
 
         offset = 0
@@ -405,7 +373,6 @@ class CursorPagination(AsyncPaginationBase):
         if current_cursor.p == previous_position and current_cursor.r:
             offset += current_cursor.o + len(results)
         else:
-            # Count duplicates at page end to find the offset
             for item in results:
                 item_position_value = self._get_position(item)
                 if item_position_value != previous_position:
@@ -474,7 +441,6 @@ class CursorPagination(AsyncPaginationBase):
         queryset = self._order_queryset(queryset, cursor)
         queryset = self._find_position(queryset, cursor)
 
-        # fetch results here and turn into a list
         results_plus_one = list(queryset[cursor.o : cursor.o + page_size + 1])
         additional_position = (
             self._get_position(results_plus_one[-1])
@@ -527,7 +493,6 @@ class CursorPagination(AsyncPaginationBase):
         queryset = self._order_queryset(queryset, cursor)
         queryset = self._find_position(queryset, cursor)
 
-        # fetch results here and turn into a list
         results_plus_one = [
             obj async for obj in queryset[cursor.o : cursor.o + page_size + 1]
         ]
@@ -593,7 +558,7 @@ def paginate(
         pagination_class = func_or_pgn_class
 
     def wrapper(func: Callable[..., Any]) -> Any:
-        return _inject_pagination(func, pagination_class, **paginator_params)
+        pass
 
     return wrapper
 
@@ -608,8 +573,6 @@ def _inject_pagination(
 
     paginator = paginator_class(**paginator_params)
 
-    # Check if Input schema has any fields
-    # If it has no fields, we should make it optional to support Pydantic 2.12+
     has_input_fields = bool(paginator.Input.model_fields)
 
     if is_async_callable(func):
@@ -618,69 +581,14 @@ def _inject_pagination(
 
         @wraps(func)
         async def view_with_pagination(request: HttpRequest, **kwargs: Any) -> Any:
-            pagination_params = kwargs.pop("ninja_pagination", None)
-            if pagination_params is None:
-                pagination_params = paginator.Input()
-            if paginator.pass_parameter:
-                kwargs[paginator.pass_parameter] = pagination_params
-
-            items = await func(request, **kwargs)
-
-            status_code = None
-            if isinstance(items, Status):
-                status_code = items.status_code
-                items = items.value
-
-            result = await paginator.apaginate_queryset(
-                items, pagination=pagination_params, request=request, **kwargs
-            )
-
-            async def evaluate(results: Union[List, QuerySet]) -> AsyncGenerator:
-                for result in results:
-                    yield result
-
-            if paginator.Output:  # type: ignore
-                result[paginator.items_attribute] = [
-                    result
-                    async for result in evaluate(result[paginator.items_attribute])
-                ]
-
-            if status_code is not None:
-                return Status(status_code, result)
-            return result
+            pass
 
     else:
 
         @wraps(func)
         def view_with_pagination(request: HttpRequest, **kwargs: Any) -> Any:
-            pagination_params = kwargs.pop("ninja_pagination", None)
-            if pagination_params is None:
-                pagination_params = paginator.Input()
-            if paginator.pass_parameter:
-                kwargs[paginator.pass_parameter] = pagination_params
+            pass
 
-            items = func(request, **kwargs)
-
-            status_code = None
-            if isinstance(items, Status):
-                status_code = items.status_code
-                items = items.value
-
-            result = paginator.paginate_queryset(
-                items, pagination=pagination_params, request=request, **kwargs
-            )
-            if paginator.Output:  # type: ignore
-                result[paginator.items_attribute] = list(
-                    result[paginator.items_attribute]
-                )
-                # ^ forcing queryset evaluation #TODO: check why pydantic did not do it here
-
-            if status_code is not None:
-                return Status(status_code, result)
-            return result
-
-    # Only contribute args if Input has fields
-    # For empty Input schemas, don't add the parameter at all to support Pydantic 2.12+
     if has_input_fields:
         contribute_operation_args(
             view_with_pagination,
@@ -731,11 +639,9 @@ def make_response_paginated(paginator: PaginationBase, op: Operation) -> None:
     """
     status_code, item_schema = _find_collection_response(op)
 
-    # Switching schema to Output schema
     try:
         new_name = f"Paged{item_schema.__name__}"
     except AttributeError:  # pragma: no cover
-        # special case for `typing.Any`, only raised for Python < 3.10
         new_name = f"Paged{str(item_schema).replace('.', '_')}"  # pragma: no cover
     new_schema = type(
         new_name,
@@ -747,7 +653,6 @@ def make_response_paginated(paginator: PaginationBase, op: Operation) -> None:
 
     response = op._create_response_model(new_schema)
 
-    # Changing response model to newly created one
     op.response_models[status_code] = response
 
 

@@ -71,16 +71,4 @@ class HttpBasicAuth(HttpAuthBase, ABC):  # TODO: maybe HttpBasicAuthBase
         pass  # pragma: no cover
 
     def decode_authorization(self, value: str) -> Tuple[str, str]:
-        parts = value.split(" ")
-        if len(parts) == 1:
-            user_pass_encoded = parts[0]
-        elif len(parts) == 2 and parts[0].lower() == "basic":
-            user_pass_encoded = parts[1]
-        else:
-            raise DecodeError("Invalid Authorization header")
-
-        try:
-            username, password = b64decode(user_pass_encoded).decode().split(":", 1)
-            return unquote(username), unquote(password)
-        except Exception as e:  # dear contributors please do not change to valueerror - here can be multiple exceptions
-            raise DecodeError("Invalid Authorization header") from e
+        pass

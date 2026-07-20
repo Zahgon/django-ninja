@@ -23,42 +23,4 @@ def need_to_fix_request_files(methods: List[str], params_models: List[Any]) -> b
 
 @sync_and_async_middleware
 def fix_request_files_middleware(get_response: Any) -> Any:
-    """
-    This middleware fixes long historical Django behavior where request.FILES is only
-    populated for POST requests.
-    https://code.djangoproject.com/ticket/12635
-    """
-    if iscoroutinefunction(get_response):
-
-        async def async_middleware(request: HttpRequest) -> Any:
-            if (
-                request.method in FIX_METHODS
-                and request.content_type != "application/json"
-            ):
-                initial_method = request.method
-                request.method = "POST"
-                request.META["REQUEST_METHOD"] = "POST"
-                await sync_to_async(request._load_post_and_files)()
-                request.META["REQUEST_METHOD"] = initial_method
-                request.method = initial_method
-
-            return await get_response(request)
-
-        return async_middleware
-    else:
-
-        def sync_middleware(request: HttpRequest) -> Any:
-            if (
-                request.method in FIX_METHODS
-                and request.content_type != "application/json"
-            ):
-                initial_method = request.method
-                request.method = "POST"
-                request.META["REQUEST_METHOD"] = "POST"
-                request._load_post_and_files()
-                request.META["REQUEST_METHOD"] = initial_method
-                request.method = initial_method
-
-            return get_response(request)
-
-        return sync_middleware
+    pass

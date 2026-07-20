@@ -1,27 +1,3 @@
-"""Compatibility layer for async streaming responses.
-
-Django 4.2+ supports passing async iterators to StreamingHttpResponse.
-On older versions, async generators must be eagerly consumed into a list.
-
-TODO: When dropping Django < 4.2 support:
-  1. Remove this module entirely.
-  2. In AsyncOperation._async_stream_response (ninja/operation.py),
-     pass the async content generator directly to StreamingHttpResponse
-     and copy temporal_response headers lazily inside the generator:
-
-         async def content_iter():
-             async for chunk in content_gen:
-                 yield chunk
-             for key, value in temporal_response.items():
-                 if key.lower() != "content-type":
-                     response[key] = value
-             for cookie_name, cookie in temporal_response.cookies.items():
-                 response.cookies[cookie_name] = cookie
-
-         response = StreamingHttpResponse(
-             content_iter(), content_type=..., status=...,
-         )
-"""
 
 from typing import Any, Dict
 

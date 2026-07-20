@@ -45,9 +45,6 @@ ExcHandler = Callable[[HttpRequest, Exc[_E]], HttpResponse]
 
 
 class NinjaAPI:
-    """
-    Ninja API
-    """
 
     def __init__(
         self,
@@ -107,14 +104,11 @@ class NinjaAPI:
 
         self.throttle = throttle
 
-        # Top-level router registrations (new architecture)
-        # Stores (prefix, router, auth, throttle, tags, url_name_prefix) for each add_router call
         self._router_registrations: List[
             Tuple[str, Router, Any, Any, Optional[List[str]], Optional[str]]
         ] = []
         self._bound_routers_cache: Optional[List[BoundRouter]] = None
 
-        # Backward compat: keep _routers list populated
         self._routers: List[Tuple[str, Router]] = []
 
         self.default_router = default_router or Router()
@@ -381,16 +375,7 @@ class NinjaAPI:
         decorator: Callable,
         mode: DecoratorMode = "operation",
     ) -> None:
-        """
-        Add a decorator to be applied to all operations in the entire API.
-
-        Args:
-            decorator: The decorator function to apply
-            mode: "operation" (default) applies after validation,
-                  "view" applies before validation
-        """
-        # Store decorator on default router - will be inherited by all routers during build
-        self.default_router.add_decorator(decorator, mode)
+        pass
 
     def add_router(
         self,
@@ -415,7 +400,6 @@ class NinjaAPI:
             url_name_prefix: Prefix for URL names (required when mounting same router multiple times)
             parent_router: Internal use - parent router for nested routers
         """
-        # Prevent adding routers after URLs have been generated
         if self._bound_routers_cache is not None:
             raise ConfigError(
                 "Cannot add routers after URLs have been generated. "
@@ -426,7 +410,6 @@ class NinjaAPI:
             router = import_string(router)
             assert isinstance(router, Router)
 
-        # Check for duplicate router template - require url_name_prefix
         existing_templates = {reg[1] for reg in self._router_registrations}
         if router in existing_templates and url_name_prefix is None:
             raise ConfigError(
@@ -434,8 +417,6 @@ class NinjaAPI:
                 "multiple times, you must provide unique url_name_prefix for each mount."
             )
 
-        # Store registration for later processing during URL generation
-        # This allows child routers to be added after add_router() is called
         self._router_registrations.append((
             prefix,
             router,
@@ -445,96 +426,17 @@ class NinjaAPI:
             url_name_prefix,
         ))
 
-        # Backward compat: keep _routers list updated (just the top-level router)
         self._routers.append((prefix, router))
 
     @property
     def urls(self) -> Tuple[List[Union[URLResolver, URLPattern]], str, str]:
-        """
-        str: URL configuration
-
-        Returns:
-
-            Django URL configuration
-        """
-        self._validate()
-        return (
-            self._get_urls(),
-            "ninja",
-            self.urls_namespace.split(":")[-1],
-            # ^ if api included into nested urls, we only care about last bit here
-        )
+        pass
 
     def _get_bound_routers(self) -> List[BoundRouter]:
-        """Get or create bound router instances."""
-        if self._bound_routers_cache is None:
-            # Build mounts from registrations (delayed to capture all child routers)
-            all_mounts: List[RouterMount] = []
-
-            for (
-                prefix,
-                router,
-                auth,
-                throttle,
-                tags,
-                url_name_prefix,
-            ) in self._router_registrations:
-                # Get API-level decorators from default router
-                api_decorators = (
-                    self.default_router._decorators
-                    if router is not self.default_router
-                    else []
-                )
-
-                # Build mount configurations (non-mutating)
-                # Pass auth/throttle/tags so they can be inherited by children
-                mounts = router.build_routers(
-                    prefix,
-                    api_decorators,
-                    inherited_auth=auth,
-                    inherited_throttle=throttle,
-                    inherited_tags=tags,
-                )
-
-                # Apply mount-level overrides to the first (parent) mount
-                # build_routers() always returns at least one mount (the router itself)
-                first_mount = mounts[0]
-                if auth is not NOT_SET:
-                    first_mount.auth = auth
-                if throttle is not NOT_SET:
-                    first_mount.throttle = throttle
-                if tags is not None:
-                    first_mount.tags = tags
-
-                # Apply url_name_prefix to all mounts
-                if url_name_prefix is not None:
-                    for mount in mounts:
-                        mount.url_name_prefix = url_name_prefix
-
-                all_mounts.extend(mounts)
-
-            # Create bound routers from mounts
-            self._bound_routers_cache = [
-                BoundRouter(mount, self) for mount in all_mounts
-            ]
-
-            # Freeze all templates after binding
-            for mount in all_mounts:
-                mount.template._freeze()
-
-            # Update _routers for backward compat (include all nested routers)
-            self._routers = [(m.prefix, m.template) for m in all_mounts]
-
-        return self._bound_routers_cache
+        pass
 
     def _get_urls(self) -> List[Union[URLResolver, URLPattern]]:
-        result = get_openapi_urls(self)
-
-        for bound_router in self._get_bound_routers():
-            result.extend(bound_router.urls_paths(bound_router.prefix))
-
-        result.append(get_root_url(self))
-        return result
+        pass
 
     def get_root_path(self, path_params: DictStrAny) -> str:
         name = f"{self.urls_namespace}:api-root"
@@ -548,27 +450,13 @@ class NinjaAPI:
         status: Optional[int] = None,
         temporal_response: Optional[HttpResponse] = None,
     ) -> HttpResponse:
-        if temporal_response:
-            status = temporal_response.status_code
-        assert status
-
-        content = self.renderer.render(request, data, response_status=status)
-
-        if temporal_response:
-            response = temporal_response
-            response.content = content
-        else:
-            response = HttpResponse(
-                content, status=status, content_type=self.get_content_type()
-            )
-
-        return response
+        pass
 
     def create_temporal_response(self, request: HttpRequest) -> HttpResponse:
-        return HttpResponse("", content_type=self.get_content_type())
+        pass
 
     def get_content_type(self) -> str:
-        return f"{self.renderer.media_type}; charset={self.renderer.charset}"
+        pass
 
     def get_openapi_schema(
         self,
@@ -581,16 +469,10 @@ class NinjaAPI:
         return get_schema(api=self, path_prefix=path_prefix)
 
     def get_openapi_operation_id(self, operation: "Operation") -> str:
-        name = operation.view_func.__name__
-        module = operation.view_func.__module__
-        return (module + "_" + name).replace(".", "_")
+        pass
 
     def get_operation_url_name(self, operation: "Operation", router: Router) -> str:
-        """
-        Get the default URL name to use for an operation if it wasn't
-        explicitly provided.
-        """
-        return operation.view_func.__name__
+        pass
 
     def add_exception_handler(
         self, exc_class: Type[_E], handler: ExcHandler[_E]
@@ -602,50 +484,23 @@ class NinjaAPI:
         self, exc_class: Type[Exception]
     ) -> Callable[[TCallable], TCallable]:
         def decorator(func: TCallable) -> TCallable:
-            self.add_exception_handler(exc_class, func)
-            return func
+            pass
 
         return decorator
 
     def set_default_exception_handlers(self) -> None:
-        set_default_exc_handlers(self)
+        pass
 
     def on_exception(self, request: HttpRequest, exc: Exc[_E]) -> HttpResponse:
-        handler = self._lookup_exception_handler(exc)
-        if handler is None:
-            raise exc
-        return handler(request, exc)
+        pass
 
     def validation_error_from_error_contexts(
         self, error_contexts: List[ValidationErrorContext]
     ) -> ValidationError:
-        errors: List[Dict[str, Any]] = []
-        for context in error_contexts:
-            model = context.model
-            e = context.pydantic_validation_error
-            for i in e.errors(include_url=False):
-                i["loc"] = (
-                    model.__ninja_param_source__,
-                ) + model.__ninja_flatten_map_reverse__.get(i["loc"], i["loc"])
-                # removing pydantic hints
-                del i["input"]  # type: ignore
-                if (
-                    "ctx" in i
-                    and "error" in i["ctx"]
-                    and isinstance(i["ctx"]["error"], Exception)
-                ):
-                    i["ctx"]["error"] = str(i["ctx"]["error"])
-                errors.append(dict(i))
-        return ValidationError(errors)
+        pass
 
     def _lookup_exception_handler(self, exc: Exc[_E]) -> Optional[ExcHandler[_E]]:
-        for cls in type(exc).__mro__:
-            if cls in self._exception_handlers:
-                return self._exception_handlers[cls]
-
-        return None
+        pass
 
     def _validate(self) -> None:
-        # Registry check no longer needed - routers are independent templates
-        # and can be reused across multiple APIs without conflicts
         pass
